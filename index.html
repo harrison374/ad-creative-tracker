@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ad Creative Tracker — Uscale</title>
+<style>
+  :root{
+    --bg:#0d1117; --panel:#161b24; --panel2:#1c2230; --line:#262d3a;
+    --txt:#e6edf3; --muted:#8b98a9; --faint:#5b6675;
+    --approved:#3b82f6; --design:#a855f7; --edit:#6366f1;
+    --idea:#64748b; --testing:#14b8a6;
+    --accent:#2dd4bf;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--txt);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    font-size:14px;line-height:1.45;-webkit-font-smoothing:antialiased}
+  a{color:inherit;text-decoration:none}
+  .wrap{max-width:1180px;margin:0 auto;padding:24px 20px 80px}
+
+  header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:20px}
+  h1{font-size:22px;margin:0;letter-spacing:-.02em}
+  .sub{color:var(--muted);font-size:12.5px;margin-top:4px}
+  .sub b{color:var(--accent);font-weight:600}
+  .headright{display:flex;align-items:center;gap:14px}
+  .updated{color:var(--faint);font-size:12px;text-align:right}
+  .updated .dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#22c55e;margin-right:6px;vertical-align:middle}
+  .updated .faint{color:var(--faint)}
+  .refresh{display:inline-flex;align-items:center;gap:7px;background:var(--panel);border:1px solid var(--line);
+    color:var(--txt);font-size:13px;font-weight:600;padding:9px 14px;border-radius:9px;cursor:pointer;transition:border-color .15s,background .15s}
+  .refresh:hover{border-color:var(--accent);background:var(--panel2)}
+  .refresh .ri{display:inline-block;font-size:15px;line-height:1}
+  .refresh.spin .ri{animation:spin .6s ease}
+  @keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+
+  /* top band: stat tiles + two breakdown windows */
+  .top{display:grid;grid-template-columns:1.15fr 1fr 1fr;gap:14px;margin-bottom:20px}
+  .box{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px}
+  .box h3{margin:0 0 12px;font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600}
+
+  .statcol{display:flex;flex-direction:column;gap:14px}
+  .stat{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:15px 18px}
+  .stat .n{font-size:30px;font-weight:750;letter-spacing:-.03em;line-height:1}
+  .stat .n small{font-size:15px;font-weight:600;color:var(--muted);margin-left:4px}
+  .stat .l{color:var(--muted);font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;margin-top:6px}
+  .stat.hero .n{color:var(--testing)}
+  .stat .hint{color:var(--faint);font-size:11px;margin-top:4px}
+  .stat.clickable{cursor:pointer;transition:border-color .15s,background .15s}
+  .stat.clickable:hover{border-color:var(--accent);background:var(--panel2)}
+  .stat.clickable .l::after{content:" ›";color:var(--accent);font-weight:700}
+
+  /* per-client velocity panel */
+  .velo{margin-bottom:20px}
+  .velogrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+  .vcell{background:var(--panel2);border:1px solid var(--line);border-radius:11px;padding:12px 13px;position:relative;overflow:hidden}
+  .vcell .vc{font-size:12.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .vcell .vn{font-size:23px;font-weight:750;letter-spacing:-.02em;margin-top:3px;line-height:1}
+  .vcell .vn small{font-size:12px;font-weight:600;color:var(--muted);margin-left:3px}
+  .vcell .vd{font-size:10.5px;color:var(--faint);margin-top:3px}
+  .vcell .vbar{position:absolute;left:0;top:0;bottom:0;width:4px}
+  .vc-fresh .vbar{background:#22c55e} .vc-fresh .vn{color:#4ade80}
+  .vc-warn .vbar{background:#f59e0b}  .vc-warn .vn{color:#fbbf24}
+  .vc-stale .vbar{background:#f43f5e} .vc-stale .vn{color:#fb7185}
+  .vc-none .vbar{background:var(--faint)} .vc-none .vn{color:var(--faint);font-size:15px}
+
+  /* modal */
+  .modal-bg{position:fixed;inset:0;background:rgba(5,8,13,.72);backdrop-filter:blur(3px);
+    display:none;align-items:flex-start;justify-content:center;padding:48px 16px;z-index:50;overflow:auto}
+  .modal-bg.open{display:flex}
+  .modal{background:var(--panel);border:1px solid var(--line);border-radius:16px;width:100%;max-width:720px;
+    box-shadow:0 24px 60px rgba(0,0,0,.5)}
+  .modal-h{display:flex;align-items:center;gap:12px;padding:16px 20px;border-bottom:1px solid var(--line)}
+  .modal-h h2{margin:0;font-size:16px}
+  .modal-h .mc{color:var(--faint);font-size:12.5px}
+  .modal-x{margin-left:auto;background:var(--panel2);border:1px solid var(--line);color:var(--muted);
+    width:30px;height:30px;border-radius:8px;cursor:pointer;font-size:16px;line-height:1}
+  .modal-x:hover{color:var(--txt);border-color:var(--accent)}
+  .modal-b{padding:6px 10px 14px}
+  .mgroup{padding:10px 10px 2px}
+  .mgroup .gh{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:6px 4px 4px}
+  .mrow{display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:10px;padding:8px;border-radius:8px}
+  .mrow:hover{background:var(--panel2)}
+  .mrow .mn{font-size:13.2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .mrow .mn a:hover{color:var(--accent)}
+
+  .brk{display:flex;flex-direction:column;gap:9px}
+  .brow{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:10px;font-size:13px}
+  .brow .nm{display:flex;align-items:center;gap:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .brow .track{height:8px;background:var(--panel2);border-radius:5px;overflow:hidden}
+  .brow .fill{height:100%;border-radius:5px;background:var(--accent)}
+  .brow .ct{color:var(--muted);font-weight:600;min-width:20px;text-align:right}
+  .brow .ct.hasitems{cursor:help;text-decoration:underline dotted;text-underline-offset:3px;text-decoration-color:var(--faint)}
+  .brow .ct.hasitems:hover{color:var(--accent);text-decoration-color:var(--accent)}
+
+  /* hover tooltip listing tasks */
+  .tip{position:fixed;z-index:90;max-width:340px;display:none;background:#0b0f16;border:1px solid var(--line);
+    border-radius:10px;padding:10px 12px;box-shadow:0 14px 34px rgba(0,0,0,.55);pointer-events:none}
+  .tip .th{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--accent);margin-bottom:7px;font-weight:600}
+  .tip .tl{display:flex;flex-direction:column;gap:1px;padding:5px 0;border-top:1px solid var(--line)}
+  .tip .tl:first-of-type{border-top:none}
+  .tip .tn{font-size:12.5px;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:314px}
+  .tip .tm{font-size:10.5px;color:var(--faint)}
+  .tip .none{color:var(--faint);font-size:12px}
+  .av{width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;
+    font-size:9.5px;font-weight:700;color:#0d1117;flex:none}
+  .dotc{width:9px;height:9px;border-radius:50%;flex:none}
+
+  /* controls */
+  .controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:16px}
+  .search{flex:1;min-width:200px;background:var(--panel);border:1px solid var(--line);border-radius:9px;
+    padding:9px 12px;color:var(--txt);font-size:13.5px}
+  .search::placeholder{color:var(--faint)}
+  select{background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:9px 10px;color:var(--txt);font-size:13px}
+  .toggle{display:flex;align-items:center;gap:7px;background:var(--panel);border:1px solid var(--line);
+    border-radius:9px;padding:8px 12px;cursor:pointer;user-select:none;font-size:13px;color:var(--muted)}
+  .toggle input{accent-color:var(--accent);width:15px;height:15px;margin:0}
+  .toggle.on{color:var(--txt);border-color:var(--accent)}
+
+  /* client card */
+  .client{background:var(--panel);border:1px solid var(--line);border-radius:14px;margin-bottom:14px;overflow:hidden}
+  .chead{display:flex;align-items:center;gap:12px;padding:14px 18px;cursor:pointer}
+  .chead .cname{font-size:15.5px;font-weight:650}
+  .chead .cmeta{color:var(--faint);font-size:12px}
+  .chevron{margin-left:auto;color:var(--faint);transition:transform .18s;font-size:12px}
+  .client.collapsed .chevron{transform:rotate(-90deg)}
+  .client.collapsed .cbody{display:none}
+  .stagebar{display:flex;height:6px;border-radius:4px;overflow:hidden;flex:1;max-width:240px;background:var(--panel2)}
+  .stagebar span{display:block;height:100%}
+
+  .cbody{padding:0 10px 8px}
+  table{width:100%;border-collapse:collapse}
+  tr.task{border-top:1px solid var(--line)}
+  tr.task:hover{background:var(--panel2)}
+  td{padding:9px 8px;vertical-align:middle}
+  td.nm{font-size:13.3px}
+  td.nm a:hover{color:var(--accent)}
+  td.st{width:200px}
+  td.assg{width:120px;text-align:right}
+
+  .pill{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;padding:3px 9px;border-radius:20px;white-space:nowrap}
+  .pill::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+  .pill.idea{color:#a9b4c2;background:rgba(100,116,139,.16)}
+  .pill.approved{color:#93c5fd;background:rgba(59,130,246,.15)}
+  .pill.design{color:#d8b4fe;background:rgba(168,85,247,.15)}
+  .pill.edit{color:#a5b4fc;background:rgba(99,102,241,.15)}
+  .pill.testing{color:#5eead4;background:rgba(20,184,166,.15)}
+
+  .avatars{display:inline-flex}
+  .avatars .av{border:2px solid var(--panel);margin-left:-6px}
+  .avatars .av:first-child{margin-left:0}
+  .unassigned{color:var(--faint);font-size:12px;font-style:italic}
+
+  .empty-client{padding:16px 18px;color:var(--faint);font-size:13px}
+  .noresult{text-align:center;color:var(--faint);padding:40px}
+
+  .footnote{margin-top:26px;padding:16px 18px;background:var(--panel);border:1px dashed var(--line);border-radius:12px;color:var(--muted);font-size:12.5px}
+  .footnote b{color:var(--txt)}
+
+  @media(max-width:860px){
+    .top{grid-template-columns:1fr}
+    .updated{text-align:left}
+    td.assg{display:none}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Ad Creative Tracker</h1>
+      <div class="sub">ClickUp · <b>Clients</b> space · In-production pipeline</div>
+    </div>
+    <div class="headright">
+      <button class="refresh" id="refreshBtn" title="Recalculate the day counters against the current time">
+        <span class="ri">⟳</span> Refresh
+      </button>
+      <div class="updated"><span class="dot"></span>Snapshot: 9 July 2026<br><span class="faint" id="asOf"></span></div>
+    </div>
+  </header>
+
+  <div class="top">
+    <div class="statcol">
+      <div class="stat clickable" id="activeTile" role="button" tabindex="0">
+        <div class="n" id="activeTotal">–</div>
+        <div class="l">Active tasks in production</div>
+        <div class="hint">Approved · Sent to graphic designer · Sent to video editor — click to view them all</div>
+      </div>
+    </div>
+    <div class="box">
+      <h3>Active by owner</h3>
+      <div class="brk" id="byOwner"></div>
+    </div>
+    <div class="box">
+      <h3>Active by client</h3>
+      <div class="brk" id="byClient"></div>
+    </div>
+  </div>
+
+  <div class="box velo">
+    <h3>Days since last creative → Testing, by client</h3>
+    <div class="velogrid" id="veloGrid"></div>
+  </div>
+
+  <div class="tip" id="tip"></div>
+
+  <div class="modal-bg" id="modalBg">
+    <div class="modal" role="dialog" aria-modal="true">
+      <div class="modal-h">
+        <h2>Active tasks in production</h2>
+        <span class="mc" id="modalCount"></span>
+        <button class="modal-x" id="modalX" aria-label="Close">×</button>
+      </div>
+      <div class="modal-b" id="modalBody"></div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <input class="search" id="q" placeholder="Search creatives…">
+    <select id="fClient"><option value="">All clients</option></select>
+    <select id="fStage">
+      <option value="">All stages</option>
+      <option value="approved">Approved</option>
+      <option value="design">Sent to graphic designer</option>
+      <option value="edit">Sent to video editor</option>
+    </select>
+    <select id="fAssignee"><option value="">All owners</option></select>
+    <label class="toggle" id="tExtra"><input type="checkbox" id="cExtra">Show Idea &amp; Testing</label>
+  </div>
+
+  <div id="clients"></div>
+
+  <div class="footnote">
+    <b>What this shows:</b> every creative in your Clients-space lists that is actively in production —
+    <b>Approved</b>, <b>Sent to graphic designer</b> or <b>Sent to video editor</b>.
+    Idea-stage, Testing and Top-performing creatives are excluded from the default view (toggle “Show Idea &amp; Testing” to reveal the first two).
+    <br><br>
+    <b>Days since last → Testing</b> (top figure and the per-client panel) counts up from when each client’s newest creative reached the Testing stage,
+    derived from that task’s creation date since the “Total time in Status” ClickApp isn’t enabled — enable it in ClickUp for exact status-change timing.
+    Per-client colour: green ≤ 14 days, amber ≤ 30, red beyond. The two windows break the active production tasks down by owner and by client;
+    click <b>Active tasks in production</b> to list every one.
+    To pull fresh data, say <b>“refresh the ad creative tracker.”</b>
+  </div>
+</div>
+
+<script>
+const DATA = [{"id": "869e231uf", "name": "Migravent - Video - Migraines Kryptonite", "url": "https://app.clickup.com/t/869e231uf", "client": "Vita Sciences", "stage": "rejected", "cat": "killed", "assignees": [], "closed": false, "board": false, "extra": false}, {"id": "869e231rf", "name": "Migravent - Video - One Capsule Instead Of Five", "url": "https://app.clickup.com/t/869e231rf", "client": "Vita Sciences", "stage": "rejected", "cat": "killed", "assignees": [], "closed": false, "board": false, "extra": false}, {"id": "869e231nx", "name": "Migravent - Video - Your Body Remembers The Trade Off", "url": "https://app.clickup.com/t/869e231nx", "client": "Vita Sciences", "stage": "rejected", "cat": "killed", "assignees": [], "closed": false, "board": false, "extra": false}, {"id": "869e23hax", "name": "Boy Box - Static - Color Done Quietly", "url": "https://app.clickup.com/t/869e23hax", "client": "Boy Box", "stage": "rejected", "cat": "killed", "assignees": [], "closed": false, "board": false, "extra": false}, {"id": "869e23hae", "name": "Boy Box - Static - Same Cotton Starting At Six", "url": "https://app.clickup.com/t/869e23hae", "client": "Boy Box", "stage": "rejected", "cat": "killed", "assignees": [], "closed": false, "board": false, "extra": false}, {"id": "869e23ha3", "name": "Boy Box - Static - Same Pack Every 3 Months", "url": "https://app.clickup.com/t/869e23ha3", "client": "Boy Box", "stage": "rejected", "cat": "killed", "assignees": [], "closed": false, "board": false, "extra": false}, {"id": "869denuzz", "name": "Migravent - Video - Split screen whiteboard explainer", "url": "https://app.clickup.com/t/869denuzz", "client": "Vita Sciences", "stage": "edit", "cat": "production", "assignees": ["Ermias Tegared"], "closed": false, "board": true, "extra": false}, {"id": "869den98d", "name": "Migravent - Video - Direct response", "url": "https://app.clickup.com/t/869den98d", "client": "Vita Sciences", "stage": "edit", "cat": "production", "assignees": ["Ermias Tegared"], "closed": false, "board": true, "extra": false}, {"id": "869dtyrtv", "name": "Sciatica - Video - AI video", "url": "https://app.clickup.com/t/869dtyrtv", "client": "Vita Sciences", "stage": "testing", "cat": "live", "assignees": [], "closed": false, "board": false, "extra": true}, {"id": "869dczf2d", "name": "B12 Patch - Static - Social proof", "url": "https://app.clickup.com/t/869dczf2d", "client": "Vita Sciences", "stage": "testing", "cat": "live", "assignees": [], "closed": false, "board": false, "extra": true}, {"id": "869dc5ydg", "name": "Sciaticare - Static - Pain Agitate", "url": "https://app.clickup.com/t/869dc5ydg", "client": "Vita Sciences", "stage": "testing", "cat": "live", "assignees": [], "closed": false, "board": false, "extra": true}, {"id": "869dc2f61", "name": "Sciaticare - Static - Desire bridge", "url": "https://app.clickup.com/t/869dc2f61", "client": "Vita Sciences", "stage": "testing", "cat": "live", "assignees": [], "closed": false, "board": false, "extra": true}, {"id": "869db13ry", "name": "Migravent - Static - Social proof", "url": "https://app.clickup.com/t/869db13ry", "client": "Vita Sciences", "stage": "testing", "cat": "live", "assignees": [], "closed": false, "board": false, "extra": true}, {"id": "869db12e9", "name": "Migravent - Static - Desire bridge", "url": "https://app.clickup.com/t/869db12e9", "client": "Vita Sciences", "stage": "testing", "cat": "live", "assignees": [], "closed": false, "board": false, "extra": true}, {"id": "869db119u", "name": "Migravent - Static - Pain Agitate", "url": "https://app.clickup.com/t/869db119u", "client": "Vita Sciences", "stage": "testing", "cat": "live", "assignees": [], "closed": false, "board": false, "extra": true}, {"id": "869dcz9u2", "name": "B12 Patch - Static - Desire bridge", "url": "https://app.clickup.com/t/869dcz9u2", "client": "Vita Sciences", "stage": "testing", "cat": "live", "assignees": [], "closed": false, "board": false, "extra": true}, {"id": "869dcy86b", "name": "B12 Patch - Static - Pain Agitate", "url": "https://app.clickup.com/t/869dcy86b", "client": "Vita Sciences", "stage": "testing", "cat": "live", "assignees": [], "closed": false, "board": false, "extra": true}, {"id": "869dc3gwr", "name": "Sciaticare - Static - Social Proof", "url": "https://app.clickup.com/t/869dc3gwr", "client": "Vita Sciences", "stage": "testing", "cat": "live", "assignees": [], "closed": false, "board": false, "extra": true}, {"id": "869crkwek", "name": "Squeak n Snap - Static - Batch 2: Gifting Angle", "url": "https://app.clickup.com/t/869crkwek", "client": "Squeak n Snap", "stage": "testing", "cat": "live", "assignees": [], "closed": false, "board": false, "extra": true}, {"id": "869cnf6qk", "name": "Brylamar- Live Hype Drop Ads", "url": "https://app.clickup.com/t/869cnf6qk", "client": "Brylamar", "stage": "testing", "cat": "live", "assignees": ["Harrison Buch"], "closed": false, "board": false, "extra": true}, {"id": "869c2gq40", "name": "Mission Beard – Edit 4 raw videos (trim, captions, b-roll)", "url": "https://app.clickup.com/t/869c2gq40", "client": "Mission Beard", "stage": "testing", "cat": "live", "assignees": ["Harrison Buch"], "closed": true, "board": false, "extra": false}, {"id": "869c2jfdv", "name": "Mission Beard – Daily Refresh Kit UGC VO Overlay", "url": "https://app.clickup.com/t/869c2jfdv", "client": "Mission Beard", "stage": "testing", "cat": "live", "assignees": ["Harrison Buch"], "closed": true, "board": false, "extra": false}, {"id": "869c2gp1y", "name": "Weekly Report", "url": "https://app.clickup.com/t/869c2gp1y", "client": "Mission Beard", "stage": "testing", "cat": "live", "assignees": ["Diosa Hernale"], "closed": true, "board": false, "extra": false}, {"id": "869ckrk0t", "name": "EOM Report", "url": "https://app.clickup.com/t/869ckrk0t", "client": "Squeak n Snap", "stage": "complete", "cat": "done", "assignees": ["Diosa Hernale"], "closed": true, "board": false, "extra": false}, {"id": "869ckrk0r", "name": "Weekly Report", "url": "https://app.clickup.com/t/869ckrk0r", "client": "Squeak n Snap", "stage": "complete", "cat": "done", "assignees": ["Diosa Hernale"], "closed": true, "board": false, "extra": false}, {"id": "869ckrk0q", "name": "Weekly Report", "url": "https://app.clickup.com/t/869ckrk0q", "client": "Squeak n Snap", "stage": "complete", "cat": "done", "assignees": ["Diosa Hernale"], "closed": true, "board": false, "extra": false}, {"id": "869c2gp2t", "name": "Weekly Report", "url": "https://app.clickup.com/t/869c2gp2t", "client": "Brylamar", "stage": "complete", "cat": "done", "assignees": ["Diosa Hernale"], "closed": true, "board": false, "extra": false}, {"id": "869bytunn", "name": "Weekly Report", "url": "https://app.clickup.com/t/869bytunn", "client": "Brylamar", "stage": "complete", "cat": "done", "assignees": ["Diosa Hernale"], "closed": true, "board": false, "extra": false}, {"id": "869bytmca", "name": "EOM Report", "url": "https://app.clickup.com/t/869bytmca", "client": "Mission Beard", "stage": "testing", "cat": "live", "assignees": ["Diosa Hernale"], "closed": true, "board": false, "extra": false}, {"id": "869bytkur", "name": "Weekly Report", "url": "https://app.clickup.com/t/869bytkur", "client": "Mission Beard", "stage": "testing", "cat": "live", "assignees": ["Diosa Hernale"], "closed": true, "board": false, "extra": false}, {"id": "869c2gp5r", "name": "EOM Report", "url": "https://app.clickup.com/t/869c2gp5r", "client": "Brylamar", "stage": "complete", "cat": "done", "assignees": ["Diosa Hernale"], "closed": true, "board": false, "extra": false}, {"id": "869bytuxd", "name": "EOM Report", "url": "https://app.clickup.com/t/869bytuxd", "client": "Brylamar", "stage": "complete", "cat": "done", "assignees": ["Diosa Hernale"], "closed": true, "board": false, "extra": false}, {"id": "869bnyept", "name": "LIVE DROP ADS (Sales Goal) x4", "url": "https://app.clickup.com/t/869bnyept", "client": "Brylamar", "stage": "complete", "cat": "done", "assignees": ["Harrison Buch"], "closed": true, "board": false, "extra": false}, {"id": "869e2b3ty", "name": "Actually Made For Us", "url": "https://app.clickup.com/t/869e2b3ty", "client": "Boy Box", "stage": "design", "cat": "production", "assignees": ["Erica Arrogante"], "closed": false, "board": true, "extra": false}, {"id": "869e2b3tq", "name": "Rolled By Noon", "url": "https://app.clickup.com/t/869e2b3tq", "client": "Boy Box", "stage": "design", "cat": "production", "assignees": ["Erica Arrogante"], "closed": false, "board": true, "extra": false}, {"id": "869e2b3te", "name": "You Decide What It Finds", "url": "https://app.clickup.com/t/869e2b3te", "client": "Vita Sciences", "stage": "edit", "cat": "production", "assignees": [], "closed": false, "board": true, "extra": false}, {"id": "869e2b3rw", "name": "You Were Never Imagining It", "url": "https://app.clickup.com/t/869e2b3rw", "client": "Vita Sciences", "stage": "edit", "cat": "production", "assignees": [], "closed": false, "board": true, "extra": false}, {"id": "869e19pyg", "name": "SnS- UGC Hook Repurposing", "url": "https://app.clickup.com/t/869e19pyg", "client": "Squeak n Snap", "stage": "edit", "cat": "production", "assignees": ["Ermias Tegared"], "closed": false, "board": true, "extra": false}, {"id": "869e09njr", "name": "D3 Cream - Static - Not getting enough sun", "url": "https://app.clickup.com/t/869e09njr", "client": "Vita Sciences", "stage": "idea", "cat": "production", "assignees": ["Harrison Buch"], "closed": false, "board": false, "extra": true}, {"id": "869dyc0q7", "name": "Nervex - Static - News Angle", "url": "https://app.clickup.com/t/869dyc0q7", "client": "Vita Sciences", "stage": "approved", "cat": "production", "assignees": ["Harrison Buch"], "closed": false, "board": true, "extra": false}, {"id": "869dybzfr", "name": "B12 Patch - Static - News Angle", "url": "https://app.clickup.com/t/869dybzfr", "client": "Vita Sciences", "stage": "testing", "cat": "live", "assignees": [], "closed": false, "board": false, "extra": true}, {"id": "869dyby1m", "name": "Sciaticare - Static - News Angle", "url": "https://app.clickup.com/t/869dyby1m", "client": "Vita Sciences", "stage": "testing", "cat": "live", "assignees": ["Harrison Buch"], "closed": false, "board": false, "extra": true}, {"id": "869dybqgd", "name": "Migravent - Static - News Angle", "url": "https://app.clickup.com/t/869dybqgd", "client": "Vita Sciences", "stage": "testing", "cat": "live", "assignees": ["Harrison Buch"], "closed": false, "board": false, "extra": true}, {"id": "869dvfj2x", "name": "B12 Cream - Static - Support", "url": "https://app.clickup.com/t/869dvfj2x", "client": "Vita Sciences", "stage": "idea", "cat": "production", "assignees": ["Harrison Buch"], "closed": false, "board": false, "extra": true}, {"id": "869dvfhu1", "name": "B12 Cream - Static - Fresh ingredients", "url": "https://app.clickup.com/t/869dvfhu1", "client": "Vita Sciences", "stage": "idea", "cat": "production", "assignees": ["Harrison Buch"], "closed": false, "board": false, "extra": true}, {"id": "869dvfhky", "name": "B12 Cream - Static - Social Proof", "url": "https://app.clickup.com/t/869dvfhky", "client": "Vita Sciences", "stage": "idea", "cat": "production", "assignees": ["Harrison Buch"], "closed": false, "board": false, "extra": true}, {"id": "869dvfhgj", "name": "B12 Cream - Static - Desire Bridge", "url": "https://app.clickup.com/t/869dvfhgj", "client": "Vita Sciences", "stage": "idea", "cat": "production", "assignees": ["Harrison Buch"], "closed": false, "board": false, "extra": true}, {"id": "869dvew4q", "name": "B12 Cream - Static - Pain Agitate", "url": "https://app.clickup.com/t/869dvew4q", "client": "Vita Sciences", "stage": "idea", "cat": "production", "assignees": ["Harrison Buch"], "closed": false, "board": false, "extra": true}, {"id": "869duq8yb", "name": "Squeak n Snap- Dog Mom Static Image Ads- 23/06", "url": "https://app.clickup.com/t/869duq8yb", "client": "Squeak n Snap", "stage": "approved", "cat": "production", "assignees": [], "closed": false, "board": true, "extra": false}, {"id": "869duetrg", "name": "Peela - Static - News Angle", "url": "https://app.clickup.com/t/869duetrg", "client": "Peela Nails", "stage": "testing", "cat": "live", "assignees": [], "closed": false, "board": false, "extra": true}, {"id": "869dtyu20", "name": "Peela - Video - AI Baby Video", "url": "https://app.clickup.com/t/869dtyu20", "client": "Peela Nails", "stage": "edit", "cat": "production", "assignees": ["Ermias Tegared"], "closed": false, "board": true, "extra": false}, {"id": "869dr0120", "name": "Peela - Static - Peel Off Angle", "url": "https://app.clickup.com/t/869dr0120", "client": "Peela Nails", "stage": "approved", "cat": "production", "assignees": ["Harrison Buch"], "closed": false, "board": true, "extra": false}, {"id": "869dqzw1n", "name": "Peela - Static - Shade Change Angle", "url": "https://app.clickup.com/t/869dqzw1n", "client": "Peela Nails", "stage": "testing", "cat": "live", "assignees": [], "closed": false, "board": false, "extra": true}, {"id": "869dqxfrc", "name": "Peela - Static - Peel Off Tailored to 4 Personas", "url": "https://app.clickup.com/t/869dqxfrc", "client": "Peela Nails", "stage": "approved", "cat": "production", "assignees": ["Harrison Buch"], "closed": false, "board": true, "extra": false}, {"id": "869dqwbtz", "name": "Peela - Video - Peel Off Compilation", "url": "https://app.clickup.com/t/869dqwbtz", "client": "Peela Nails", "stage": "edit", "cat": "production", "assignees": ["Ermias Tegared"], "closed": false, "board": true, "extra": false}, {"id": "869dn96t9", "name": "Peela Wudhu Image Ads x8", "url": "https://app.clickup.com/t/869dn96t9", "client": "Peela Nails", "stage": "testing", "cat": "live", "assignees": [], "closed": false, "board": false, "extra": true}, {"id": "869dgpd85", "name": "Mission Beard- New UGC", "url": "https://app.clickup.com/t/869dgpd85", "client": "Mission Beard", "stage": "testing", "cat": "live", "assignees": [], "closed": true, "board": false, "extra": false}, {"id": "869dgepkn", "name": "Squeak n Snap - Video - Dog groomers trust angle", "url": "https://app.clickup.com/t/869dgepkn", "client": "Squeak n Snap", "stage": "idea", "cat": "production", "assignees": ["Harrison Buch"], "closed": false, "board": false, "extra": true}, {"id": "869dep9u3", "name": "Squeak n Snap - Video - Social proof demo compilation", "url": "https://app.clickup.com/t/869dep9u3", "client": "Squeak n Snap", "stage": "idea", "cat": "production", "assignees": ["Harrison Buch"], "closed": false, "board": false, "extra": true}, {"id": "869dem5zh", "name": "Mission Beard- New Balm Products", "url": "https://app.clickup.com/t/869dem5zh", "client": "Mission Beard", "stage": "testing", "cat": "live", "assignees": [], "closed": true, "board": false, "extra": false}, {"id": "869dc9r29", "name": "Video Demonstration Ads", "url": "https://app.clickup.com/t/869dc9r29", "client": "Peela Nails", "stage": "edit", "cat": "production", "assignees": ["Ermias Tegared"], "closed": false, "board": true, "extra": false}, {"id": "869db9tr8", "name": "Mission Beard- New Video Ads", "url": "https://app.clickup.com/t/869db9tr8", "client": "Mission Beard", "stage": "testing", "cat": "live", "assignees": [], "closed": true, "board": false, "extra": false}, {"id": "869db14gv", "name": "Migravent - Static - Mechanism reveal", "url": "https://app.clickup.com/t/869db14gv", "client": "Vita Sciences", "stage": "idea", "cat": "production", "assignees": [], "closed": false, "board": false, "extra": true}, {"id": "869db0vn2", "name": "Migravent - Static - The (Neurologist-Directed) Self-Researcher", "url": "https://app.clickup.com/t/869db0vn2", "client": "Vita Sciences", "stage": "idea", "cat": "production", "assignees": [], "closed": false, "board": false, "extra": true}, {"id": "869db0n6f", "name": "Migravent - Static - The Insurance-Denied Patient", "url": "https://app.clickup.com/t/869db0n6f", "client": "Vita Sciences", "stage": "idea", "cat": "production", "assignees": [], "closed": false, "board": false, "extra": true}, {"id": "869db0fpz", "name": "Migravent - Static - The Prescription-Burned Dropout", "url": "https://app.clickup.com/t/869db0fpz", "client": "Vita Sciences", "stage": "idea", "cat": "production", "assignees": [], "closed": false, "board": false, "extra": true}, {"id": "869d43ztf", "name": "Build your own beard box ads", "url": "https://app.clickup.com/t/869d43ztf", "client": "Mission Beard", "stage": "testing", "cat": "live", "assignees": ["Harrison Buch"], "closed": true, "board": false, "extra": false}, {"id": "869d1u34d", "name": "Peela Ad Batch 1 (20 Ads)", "url": "https://app.clickup.com/t/869d1u34d", "client": "Peela Nails", "stage": "testing", "cat": "live", "assignees": [], "closed": false, "board": false, "extra": true}, {"id": "869crkw9k", "name": "Squeak n Snap - Static - Batch 1: Problem Solution Angle", "url": "https://app.clickup.com/t/869crkw9k", "client": "Squeak n Snap", "stage": "testing", "cat": "live", "assignees": [], "closed": false, "board": false, "extra": true}, {"id": "869crkw4k", "name": "Squeak n Snap - Video - Batch 5: UGC Gifting Angle", "url": "https://app.clickup.com/t/869crkw4k", "client": "Squeak n Snap", "stage": "testing", "cat": "live", "assignees": [], "closed": false, "board": false, "extra": true}, {"id": "869crkw0h", "name": "Squeak n Snap - Video - Batch 4: Founder Story Rescue Mission Angle", "url": "https://app.clickup.com/t/869crkw0h", "client": "Squeak n Snap", "stage": "testing", "cat": "live", "assignees": [], "closed": false, "board": false, "extra": true}, {"id": "869crkvwp", "name": "Squeak n Snap - Video - Batch 3: UGC / Social Proof, Testimonial Angle", "url": "https://app.clickup.com/t/869crkvwp", "client": "Squeak n Snap", "stage": "testing", "cat": "live", "assignees": [], "closed": false, "board": false, "extra": true}, {"id": "869crkvr3", "name": "Squeak n Snap - Video - Batch 2: UGC Product Demonstration Show Don't Tell Angle", "url": "https://app.clickup.com/t/869crkvr3", "client": "Squeak n Snap", "stage": "testing", "cat": "live", "assignees": [], "closed": false, "board": false, "extra": true}, {"id": "869crkuj3", "name": "Squeak n Snap - Video - Batch 1: UGC Problem Solution Angle", "url": "https://app.clickup.com/t/869crkuj3", "client": "Squeak n Snap", "stage": "testing", "cat": "live", "assignees": [], "closed": false, "board": false, "extra": true}, {"id": "869cr5p01", "name": "MB- Subscribe and Save ads", "url": "https://app.clickup.com/t/869cr5p01", "client": "Mission Beard", "stage": "testing", "cat": "live", "assignees": ["Harrison Buch"], "closed": true, "board": false, "extra": false}, {"id": "869cmwcz1", "name": "MB-Winning ad variations", "url": "https://app.clickup.com/t/869cmwcz1", "client": "Mission Beard", "stage": "testing", "cat": "live", "assignees": ["Harrison Buch"], "closed": true, "board": false, "extra": false}, {"id": "869cafv29", "name": "Mission beard new static creative batch", "url": "https://app.clickup.com/t/869cafv29", "client": "Mission Beard", "stage": "testing", "cat": "live", "assignees": ["Erica Arrogante", "Harrison Buch"], "closed": true, "board": false, "extra": false}, {"id": "869c0x6pt", "name": "Create a short ai ugc video for underdog beard oil product", "url": "https://app.clickup.com/t/869c0x6pt", "client": "Mission Beard", "stage": "testing", "cat": "live", "assignees": ["Harrison Buch"], "closed": true, "board": false, "extra": false}, {"id": "869br9py8", "name": "Founder video ads x3", "url": "https://app.clickup.com/t/869br9py8", "client": "Mission Beard", "stage": "testing", "cat": "live", "assignees": [], "closed": true, "board": false, "extra": false}, {"id": "869bf8nu8", "name": "PRE-DROP ADS (Sign-Up Goal) x6 ads", "url": "https://app.clickup.com/t/869bf8nu8", "client": "Brylamar", "stage": "complete", "cat": "done", "assignees": ["Alexis", "Harrison Buch"], "closed": true, "board": false, "extra": false}, {"id": "869bb1qad", "name": "Womens Gifting Ad", "url": "https://app.clickup.com/t/869bb1qad", "client": "Mission Beard", "stage": "testing", "cat": "live", "assignees": [], "closed": true, "board": false, "extra": false}, {"id": "869b30e1g", "name": "Black Friday Live Ads x4", "url": "https://app.clickup.com/t/869b30e1g", "client": "Brylamar", "stage": "complete", "cat": "done", "assignees": ["Alexis", "Harrison Buch"], "closed": true, "board": false, "extra": false}, {"id": "869b30bp1", "name": "BFCM 15% off surprise drop x3", "url": "https://app.clickup.com/t/869b30bp1", "client": "Brylamar", "stage": "complete", "cat": "done", "assignees": ["Alexis", "Harrison Buch"], "closed": true, "board": false, "extra": false}, {"id": "869b2zpu1", "name": "BFCM surprise drop coming x3", "url": "https://app.clickup.com/t/869b2zpu1", "client": "Brylamar", "stage": "complete", "cat": "done", "assignees": ["Alexis", "Harrison Buch"], "closed": true, "board": false, "extra": false}, {"id": "869awpfqp", "name": "Hype Drop- 31st Oct x2", "url": "https://app.clickup.com/t/869awpfqp", "client": "Brylamar", "stage": "complete", "cat": "done", "assignees": ["Harrison Buch"], "closed": true, "board": false, "extra": false}, {"id": "869ahn2a5", "name": "Testimonial Ad (6 ads)", "url": "https://app.clickup.com/t/869ahn2a5", "client": "Brylamar", "stage": "complete", "cat": "done", "assignees": ["Harrison Buch"], "closed": true, "board": false, "extra": false}, {"id": "869ahn26a", "name": "Feature Callout Ad (2 ads)", "url": "https://app.clickup.com/t/869ahn26a", "client": "Brylamar", "stage": "complete", "cat": "done", "assignees": ["Harrison Buch"], "closed": true, "board": false, "extra": false}, {"id": "869ahmz1a", "name": "Headline Ad (4 ads)", "url": "https://app.clickup.com/t/869ahmz1a", "client": "Brylamar", "stage": "complete", "cat": "done", "assignees": ["Harrison Buch"], "closed": true, "board": false, "extra": false}];
+const CLIENT_ORDER = ["Vita Sciences", "Peela Nails", "Squeak n Snap", "Boy Box", "Brylamar", "Mission Beard", "Mowe Beauty"];
+const LAST_TESTING_TS = 1782908138786;
+const LAST_TEST_CLIENT = {"Vita Sciences": 1782908138786, "Peela Nails": 1782141246524, "Mission Beard": 1780277649509, "Squeak n Snap": 1775203887724, "Brylamar": 1774587566034, "Boy Box": null, "Mowe Beauty": null};
+const STAGE_LABEL = {approved:"Approved",design:"Sent to graphic designer",edit:"Sent to video editor",idea:"Idea",testing:"Testing"};
+const STAGE_COLOR = {approved:"#3b82f6",design:"#a855f7",edit:"#6366f1",idea:"#64748b",testing:"#14b8a6"};
+const STAGE_ORDER = ["approved","design","edit","idea","testing"];
+const AV_COLORS = ["#2dd4bf","#f59e0b","#818cf8","#f472b6","#4ade80","#fb923c","#60a5fa"];
+const DAY = 86400000;
+
+function initials(n){const p=n.trim().split(/\s+/);return (p[0][0]+(p.length>1?p[p.length-1][0]:"")).toUpperCase();}
+function avColor(n){let h=0;for(const c of n)h=(h*31+c.charCodeAt(0))>>>0;return AV_COLORS[h%AV_COLORS.length];}
+function esc(s){return s.replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
+function avHtml(n,cls){return `<span class="av ${cls||''}" style="background:${avColor(n)}" title="${esc(n)}">${initials(n)}</span>`;}
+
+const boardAll = DATA.filter(t=>t.board);   // fixed base set for stats & windows
+
+document.getElementById("activeTotal").textContent = boardAll.length;
+
+/* ---- per-client days since last -> Testing (recomputed on refresh) ---- */
+function renderVelocity(){
+  const grid=document.getElementById("veloGrid");
+  // order by days since Testing, most days (stalest) first; "none yet" clients last
+  const ordered=CLIENT_ORDER.slice().sort((a,b)=>{
+    const ta=LAST_TEST_CLIENT[a], tb=LAST_TEST_CLIENT[b];
+    if(!ta && !tb) return 0;
+    if(!ta) return 1;
+    if(!tb) return -1;
+    return ta-tb;            // older timestamp = more days = earlier
+  });
+  grid.innerHTML=ordered.map(c=>{
+    const ts=LAST_TEST_CLIENT[c];
+    if(!ts){
+      return `<div class="vcell vc-none"><span class="vbar"></span>
+        <div class="vc">${esc(c)}</div><div class="vn">None yet</div>
+        <div class="vd">No creative has reached Testing</div></div>`;
+    }
+    const days=Math.floor((Date.now()-ts)/DAY);
+    const cls=days<=14?"vc-fresh":days<=30?"vc-warn":"vc-stale";
+    const d=new Date(ts).toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"});
+    return `<div class="vcell ${cls}"><span class="vbar"></span>
+      <div class="vc">${esc(c)}</div>
+      <div class="vn">${days}<small>day${days===1?'':'s'}</small></div>
+      <div class="vd">Last: ${d}</div></div>`;
+  }).join("");
+}
+renderVelocity();
+
+/* ---- refresh button: recompute live day-counters against current time ---- */
+function stamp(){
+  const now=new Date();
+  document.getElementById("asOf").textContent="Day counts as of "+now.toLocaleString("en-GB",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"});
+}
+stamp();
+(function(){
+  const btn=document.getElementById("refreshBtn");
+  btn.addEventListener("click",()=>{
+    btn.classList.remove("spin");void btn.offsetWidth;btn.classList.add("spin");
+    renderVelocity();stamp();
+  });
+})();
+
+/* ---- modal: active production tasks ---- */
+(function(){
+  const bg=document.getElementById("modalBg");
+  const body=document.getElementById("modalBody");
+  const STAGE_RANK={approved:0,design:1,edit:2};
+  function build(){
+    document.getElementById("modalCount").textContent=boardAll.length+" tasks";
+    let html="";
+    CLIENT_ORDER.forEach(c=>{
+      const items=boardAll.filter(t=>t.client===c)
+        .sort((a,b)=>(STAGE_RANK[a.stage]-STAGE_RANK[b.stage]));
+      if(!items.length) return;
+      html+=`<div class="mgroup"><div class="gh">${esc(c)} · ${items.length}</div>`+
+        items.map(t=>`<div class="mrow">
+          <span class="mn"><a href="${t.url}" target="_blank">${esc(t.name)}</a></span>
+          <span class="pill ${t.stage}">${STAGE_LABEL[t.stage]}</span>
+          <span>${t.assignees.length?`<div class="avatars">`+t.assignees.map(n=>avHtml(n)).join("")+`</div>`:'<span class="unassigned">Unassigned</span>'}</span>
+        </div>`).join("")+`</div>`;
+    });
+    body.innerHTML=html;
+  }
+  function open(){build();bg.classList.add("open");}
+  function close(){bg.classList.remove("open");}
+  const tile=document.getElementById("activeTile");
+  tile.addEventListener("click",open);
+  tile.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();open();}});
+  document.getElementById("modalX").addEventListener("click",close);
+  bg.addEventListener("click",e=>{if(e.target===bg)close();});
+  document.addEventListener("keydown",e=>{if(e.key==="Escape")close();});
+})();
+
+/* ---- hover tooltip ---- */
+const tip=document.getElementById("tip");
+function moveTip(e){
+  const pad=14; const r=tip.getBoundingClientRect();
+  let x=e.clientX+pad, y=e.clientY+pad;
+  if(x+r.width>innerWidth-8) x=e.clientX-r.width-pad;
+  if(y+r.height>innerHeight-8) y=innerHeight-r.height-8;
+  if(x<8)x=8; if(y<8)y=8;
+  tip.style.left=x+"px"; tip.style.top=y+"px";
+}
+function showTip(html,e){tip.innerHTML=html;tip.style.display="block";moveTip(e);}
+function hideTip(){tip.style.display="none";}
+function tipFor(g,opts){
+  const items=(g.items||[]);
+  const head=`<div class="th">${esc(g.key)} · ${items.length} open</div>`;
+  if(!items.length) return head+`<div class="none">Nothing open</div>`;
+  const sorted=items.slice().sort((a,b)=> opts.owner
+      ? (a.client<b.client?-1:a.client>b.client?1:0)
+      : (STAGE_ORDER.indexOf(a.stage)-STAGE_ORDER.indexOf(b.stage)));
+  return head+sorted.map(t=>{
+    const meta = opts.owner
+      ? `${esc(t.client)} · ${STAGE_LABEL[t.stage]}`
+      : `${t.assignees.length?esc(t.assignees.join(", ")):"Unassigned"} · ${STAGE_LABEL[t.stage]}`;
+    return `<div class="tl"><span class="tn">${esc(t.name)}</span><span class="tm">${meta}</span></div>`;
+  }).join("");
+}
+
+/* ---- breakdown windows (hover a count to see the tasks) ---- */
+function renderBreakdown(elId, groups, opts){
+  const max=Math.max(1,...groups.map(g=>g.count));
+  const host=document.getElementById(elId); host.innerHTML="";
+  groups.forEach(g=>{
+    const lead = opts.owner
+      ? (g.key==="Unassigned" ? `<span class="dotc" style="background:var(--faint)"></span>` : avHtml(g.key))
+      : `<span class="dotc" style="background:${g.color||'var(--accent)'}"></span>`;
+    const row=document.createElement("div"); row.className="brow";
+    row.innerHTML=`<span class="nm">${lead}${esc(g.key)}</span>
+      <span class="track"><span class="fill" style="width:${Math.round(g.count/max*100)}%;${g.color?'background:'+g.color:''}"></span></span>
+      <span class="ct hasitems">${g.count}</span>`;
+    const ct=row.querySelector(".ct");
+    const html=tipFor(g,opts);
+    ct.addEventListener("mouseenter",e=>showTip(html,e));
+    ct.addEventListener("mousemove",moveTip);
+    ct.addEventListener("mouseleave",hideTip);
+    host.appendChild(row);
+  });
+}
+(function(){
+  const own={};
+  boardAll.forEach(t=>{
+    if(!t.assignees.length){(own["Unassigned"]=own["Unassigned"]||[]).push(t);}
+    else t.assignees.forEach(a=>(own[a]=own[a]||[]).push(t));
+  });
+  const g=Object.entries(own).map(([k,items])=>({key:k,count:items.length,items}))
+    .sort((a,b)=>a.key==="Unassigned"?1:b.key==="Unassigned"?-1:b.count-a.count);
+  renderBreakdown("byOwner",g,{owner:true});
+})();
+(function(){
+  const g=CLIENT_ORDER.map(c=>{const items=boardAll.filter(t=>t.client===c);return{key:c,count:items.length,items};})
+    .filter(x=>x.count>0).sort((a,b)=>b.count-a.count);
+  renderBreakdown("byClient",g,{});
+})();
+
+/* ---- filters + client cards ---- */
+const state={q:"",client:"",stage:"",assignee:"",extra:false};
+const owners=[...new Set(boardAll.flatMap(t=>t.assignees))].sort();
+const fA=document.getElementById("fAssignee");
+owners.forEach(o=>{const op=document.createElement("option");op.value=o;op.textContent=o;fA.appendChild(op);});
+const fC=document.getElementById("fClient");
+CLIENT_ORDER.forEach(c=>{const op=document.createElement("option");op.value=c;op.textContent=c;fC.appendChild(op);});
+
+document.getElementById("q").addEventListener("input",e=>{state.q=e.target.value.toLowerCase();render();});
+fC.addEventListener("change",e=>{state.client=e.target.value;render();});
+document.getElementById("fStage").addEventListener("change",e=>{state.stage=e.target.value;render();});
+fA.addEventListener("change",e=>{state.assignee=e.target.value;render();});
+(function(){
+  const el=document.getElementById("tExtra"),cb=document.getElementById("cExtra");
+  el.addEventListener("click",()=>setTimeout(()=>{state.extra=cb.checked;el.classList.toggle("on",cb.checked);
+    document.getElementById("fStage").querySelectorAll(".xopt").forEach(o=>o.remove());
+    if(cb.checked){["idea","testing"].forEach(s=>{const op=document.createElement("option");op.className="xopt";op.value=s;op.textContent=STAGE_LABEL[s];document.getElementById("fStage").appendChild(op);});}
+    render();},0));
+})();
+
+function inView(t){ return t.board || (state.extra && t.extra); }
+function passFilters(t){
+  if(!inView(t)) return false;
+  if(state.client && t.client!==state.client) return false;
+  if(state.stage && t.stage!==state.stage) return false;
+  if(state.assignee && !t.assignees.includes(state.assignee)) return false;
+  if(state.q && !t.name.toLowerCase().includes(state.q)) return false;
+  return true;
+}
+function avatarsHtml(as){
+  if(!as.length) return `<span class="unassigned">Unassigned</span>`;
+  return `<div class="avatars">`+as.map(n=>avHtml(n)).join("")+`</div>`;
+}
+function renderClients(){
+  const container=document.getElementById("clients");
+  container.innerHTML="";
+  const anyFilter=state.q||state.client||state.stage||state.assignee;
+  let anyShown=false;
+  CLIENT_ORDER.forEach(cname=>{
+    const all=DATA.filter(t=>t.client===cname);
+    const shown=all.filter(passFilters);
+    const viewItems=all.filter(inView);
+    if(!shown.length && anyFilter) return;
+    anyShown=anyShown||shown.length>0;
+
+    const counts={};STAGE_ORDER.forEach(s=>counts[s]=0);
+    viewItems.forEach(t=>{if(counts[t.stage]!=null)counts[t.stage]++;});
+    const bar=STAGE_ORDER.filter(s=>counts[s]>0).map(s=>
+      `<span style="background:${STAGE_COLOR[s]};flex:${counts[s]}" title="${STAGE_LABEL[s]}: ${counts[s]}"></span>`).join("");
+
+    const card=document.createElement("div");
+    card.className="client";
+    const head=`<div class="chead"><span class="cname">${esc(cname)}</span>
+      <span class="cmeta">${viewItems.length} in view</span>
+      <div class="stagebar">${bar}</div><span class="chevron">▾</span></div>`;
+
+    let body;
+    if(!shown.length){
+      body=`<div class="cbody"><div class="empty-client">Nothing in production for this client right now.</div></div>`;
+    }else{
+      const sorted=shown.slice().sort((a,b)=>STAGE_ORDER.indexOf(a.stage)-STAGE_ORDER.indexOf(b.stage));
+      const rowsH=sorted.map(t=>`<tr class="task">
+          <td class="nm"><a href="${t.url}" target="_blank">${esc(t.name)}</a></td>
+          <td class="st"><span class="pill ${t.stage}">${STAGE_LABEL[t.stage]||t.stage}</span></td>
+          <td class="assg">${avatarsHtml(t.assignees)}</td></tr>`).join("");
+      body=`<div class="cbody"><table><tbody>${rowsH}</tbody></table></div>`;
+    }
+    card.innerHTML=head+body;
+    if(viewItems.length===0) card.classList.add("collapsed");
+    card.querySelector(".chead").addEventListener("click",()=>card.classList.toggle("collapsed"));
+    container.appendChild(card);
+  });
+  if(!anyShown) container.innerHTML=`<div class="noresult">No creatives match these filters.</div>`;
+}
+function render(){renderClients();}
+render();
+</script>
+</body>
+</html>
