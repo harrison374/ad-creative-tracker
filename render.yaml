@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: ad-creative-tracker
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app --workers 1 --threads 4 --timeout 60
+    envVars:
+      - key: CLICKUP_TOKEN
+        sync: false
