@@ -1,1 +1,2 @@
-flask==3.0.3\ngunicorn==22.0.0\n
+flask==3.0.3
+gunicorn==22.0.0
