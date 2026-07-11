@@ -84,6 +84,33 @@ def fetch_time_in_status_bulk(task_ids, token):
     return out if out else None
 
 
+def _status_since_mins(obj):
+    """Extract (since_ms, minutes_in_status) from a status record, tolerating both
+    response shapes: total_time as {'by_minute','since'} dict, or flattened fields
+    ('since' / 'total_time_minutes' on the status object itself)."""
+    if not isinstance(obj, dict):
+        return None, None
+    tt = obj.get("total_time")
+    since = mins = None
+    if isinstance(tt, dict):
+        since, mins = tt.get("since"), tt.get("by_minute")
+    if since is None:
+        since = obj.get("since")
+    if mins is None:
+        mins = obj.get("total_time_minutes")
+    if mins is None and isinstance(tt, (int, float)):
+        mins = tt
+    try:
+        since = int(since) if since is not None else None
+    except (TypeError, ValueError):
+        since = None
+    try:
+        mins = float(mins) if mins is not None else None
+    except (TypeError, ValueError):
+        mins = None
+    return since, mins
+
+
 def testing_entered_at(hist, now_ms):
     """When did this task last enter a Testing-family status?
     Applies the 15-minute buffer: a change too recent (or a blip shorter than
@@ -93,19 +120,17 @@ def testing_entered_at(hist, now_ms):
     best = None
     cur = hist.get("current_status") or {}
     if (cur.get("status") or "").strip().lower() in TESTING_FAMILY:
-        since = (cur.get("total_time") or {}).get("since")
-        if since:
-            s = int(since)
-            if now_ms - s >= BUFFER_MS:
-                best = s
+        since, _ = _status_since_mins(cur)
+        if since and now_ms - since >= BUFFER_MS:
+            best = since
     for h in hist.get("status_history") or []:
+        if not isinstance(h, dict):
+            continue
         if (h.get("status") or "").strip().lower() in TESTING_FAMILY:
-            tt = h.get("total_time") or {}
-            since, mins = tt.get("since"), tt.get("by_minute") or 0
-            if since and mins >= 15:
-                s = int(since)
-                if best is None or s > best:
-                    best = s
+            since, mins = _status_since_mins(h)
+            if since and (mins or 0) >= 15:
+                if best is None or since > best:
+                    best = since
     return best
 
 
