@@ -1,7 +1,7 @@
 {
   "_why": "Which clients appear on the tracker. A ClickUp folder alone is NOT enough: folders get created when a client signs, but a client only belongs on the dashboard once client-strategy-and-onboarding has actually been run for them. This file is that gate, and Phase 7 of that skill is what appends to it.",
   "_how": "Names must match the ClickUp folder name in the Clients space exactly (matching is case-insensitive and trims whitespace). List IDs are never recorded here - those are discovered from ClickUp at build time, so they cannot drift. A name here with no matching folder is logged as a warning rather than silently ignored.",
-  "_updated": "2026-08-21",
+  "_updated": "2026-08-24",
   "onboarded": [
     "Vita Sciences",
     "Peela Nails",
@@ -9,7 +9,6 @@
     "Brylamar",
     "Mowe Beauty",
     "A Traill To Remember",
-    "Snug A Bug",
     "Kitchen Table Times"
   ],
   "_pending_onboarding": {
