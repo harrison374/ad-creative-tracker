@@ -7,14 +7,13 @@
     "Peela Nails",
     "Brylamar",
     "Mowe Beauty",
-    "A Traill To Remember",
+    "A Trail To Remember",
     "Kitchen Table Times",
-    "Aspire"
+    "Aspire",
+    "Hades Bollards"
   ],
   "_pending_onboarding": {
     "_note": "Have a ClickUp folder, not yet onboarded, so deliberately absent from the tracker. Move a name into onboarded when its Phase 7 run completes. Recorded here so the gap is visible rather than looking like a bug.",
-    "clients": [
-      "Hades Bollards"
-    ]
+    "clients": []
   }
 }
